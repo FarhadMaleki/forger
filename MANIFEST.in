@@ -17,6 +17,6 @@ include CHANGELOG.rst
 include CONTRIBUTING.rst
 include LICENSE
 include README.rst
-
+include requirements-dev.txt
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
