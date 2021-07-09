@@ -2,8 +2,13 @@
 Contents
 ========
 
+.. automodule: forger
+.. automodule: utils
+
 .. toctree::
    :maxdepth: 2
+
+   modules
 
    readme
    installation

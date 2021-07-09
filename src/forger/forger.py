@@ -2243,7 +2243,6 @@ class AdaptiveHistogramEqualization(Transformation):
         p: The transformation is applied with a probability of p.
             The default value is ``1.0``.
     """
-
     def __init__(self, alpha=1.0, beta=0.5, radius=2, p=1.0):
         self.alpha = alpha
         self.beta = beta

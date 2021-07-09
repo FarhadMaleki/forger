@@ -56,6 +56,6 @@ after_failure:
   - cat .tox/log/*
   - cat .tox/*/log/*
 notifications:
-  email:
+  email: farhad.maleki@mail.mcgill.ca
     on_success: never
     on_failure: always
