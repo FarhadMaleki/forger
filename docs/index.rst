@@ -1,9 +1,16 @@
+.. image:: forger.svg
+  :width: 500
+  :align: center
+  :alt: forger logo
+
 ========
 Contents
 ========
 
 .. automodule: forger
 .. automodule: utils
+
+
 
 .. toctree::
    :maxdepth: 2
