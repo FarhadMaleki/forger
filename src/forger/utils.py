@@ -18,17 +18,17 @@ def refrence_free_3D_resample(image, transformation=None,
         image: A SimpleITK image.
         transformation: A transformation to be applied to the image. If None,
             The identity transformation is used.
-        interpolator: he interpolator used for image interpolation after
+        interpolator: The interpolator used for image interpolation after
             applying transformation. The default is ``sitk.sitkBSpline``.
         default_value: The default values used for voxel values. The default is
             ``0``.
         image_voxel_type: The data type used for casting the resampled image.
-            f None, the voxel type of the ``image`` is used.
+            If None, the voxel type of the ``image`` is used.
         spacing: The spacing of the image after resampling.
         direction: The direction of the image after resampling.
 
     Returns:
-
+        sitk.Image: The resampled image.
     """
     if transformation is None:
         # The default is the identity transformation
@@ -109,7 +109,7 @@ def image_equal(image1: sitk.Image, image2: sitk.Image, type_check=True,
     Args:
         image1: A SimpleITK image.
         image2: A SimpleITK image.
-        type_check: True is data type is used for comparison.
+        type_check: True if data type is used for comparison.
         tolerance: The threshold used for the acceptable deviation between the
             euclidean distance of voxel values between the two images.
 

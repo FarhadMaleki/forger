@@ -74,7 +74,7 @@ setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'aspectlib>=1.1.1', 'SimpleITK>=2.0.2',
+        'numpy>=1.1.1', 'SimpleITK>=2.0.2',
     ],
     extras_require={
         # eg:

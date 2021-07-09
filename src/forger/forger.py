@@ -35,7 +35,7 @@ class Transformation(ABC):
 
 
 def apply_transform(transformation, image: sitk.Image, mask: sitk.Image = None):
-    """Apply a SimpleITK transformation on an image and its mask (if provided).
+    """Apply a SimpleITK transformation to an image and its mask (if provided).
 
     Args:
         transformation: A SimpleITK transformation.
@@ -52,13 +52,12 @@ def expand_parameters(param, dimension, name, convert_fn=None):
     """A helper function for making boundary lists.
 
     The boundary list must be a list of tuples of size 2. For example,
-        in a 3D context this should be:
+    in a 3D context this should be:
         [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
 
-
     Args:
-        param: the value used to create the boundary list.
-            In a 3D context:
+        param: the value used to create the boundary list. In a 3D context:
+
             * If param is a scale s, the boundary list will be
                 [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s|
                 represents the absolute value of s.
@@ -68,13 +67,16 @@ def expand_parameters(param, dimension, name, convert_fn=None):
                 represents the absolute value of x.
             * param can also have the following form:
                 [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
+
         dimension: An integer value representing the dimension of images.
         name: The name used for raising errors, if required.
         convert_fn: if not null a conversion function will be applied to
             the final values.
+
     Returns:
         A numpy array of the following form
             numpy.array([(x_min, x_max), (y_min, y_max), (z_min, z_max)]).
+
     Raises:
          ValueError: If the parameter does not follow one of the valid forms.
     """
@@ -111,14 +113,13 @@ def expand_parameters(param, dimension, name, convert_fn=None):
 class Identity(Transformation):
     """Apply identity transformation to an image and its mask (if provided).
 
-    This transformation does not change image or its mask and is just for
-        convenience.
+    This transformation does not change the image or its mask and is just for
+    convenience.
 
     Args:
         copy: If True create and return a copy of the image and mask (if
             provided); otherwise, the input image and mask objects will be
             returned.
-
     """
 
     def __init__(self, copy: bool = False):
@@ -148,22 +149,24 @@ class Identity(Transformation):
 class Pad(Transformation):
     """Pad an image and a mask (if applicable).
 
-    The available options for padding are constant padding,
-        mirror padding, and wrap padding.
+    The available options for padding are constant padding, mirror padding,
+    and wrap padding.
 
     Args:
-        padding: The padding size. The acceptable values are an positive
+        padding: The padding size. The acceptable values are a positive
             integer and a sequence of 3 positive integers, used for padding
             width (x), height (y), and depth (z) dimensions, respectively.
             If an integer value is provided, it will be considered as the
             padding value for all dimensions.
             Note that padding must be a positive integer.
         method: The method used for padding. Supported options are as follows:
+
             * constant: Uses a constant value for padding. Default is constant.
             * mirror: Considers the image edge as mirror and use the
                 reflection of values inside the image as the values for
-                voxels inf the padded area.
+                voxels in the padded area.
             * wrap: Uses a wrap padding.
+
         constant: The constant value used for padding. This will be
             ignored if method is not constant. The default is 0.
         background_label: The label used in the mask image for the
@@ -173,7 +176,7 @@ class Pad(Transformation):
         pad_upper_bound (bool): if True padding will be applied to the
             upper-boundary of each dimension. Default is True.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
 
     Raises:
         ValueError: If padding value or method is not valid.
@@ -275,7 +278,6 @@ class ForegroundMask(object):
             all image voxels less than the Otsu threshold will be considered as
             background. Acceptable values are '<', '<=', '>', and '>='.
         bins: the number of bins used for Otsu thresholding. Default is 128.
-
     """
 
     def __init__(self, background: str = "<", bins=128):
@@ -378,7 +380,7 @@ class Rotation(Transformation):
         angles: The rotation angles in degrees. This should be a tuple of
             length 3.
         interpolator: The interpolator used by the
-            transformation. The default is ``sitk.sitkBSpline``.
+            transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
         mask_background: The value used as the default for mask voxels.
         reference: The reference grid used for resampling during the
@@ -440,7 +442,7 @@ class Affine(Transformation):
             length 3. The default is None, representing no translation.
         scales: A scale factor. The default is None, representing no scaling.
         interpolator: The interpolator used by the
-            transformation. The default is ``sitk.sitkBSpline``.
+            transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
         mask_background: The value used as the default for mask voxels.
         reference: The reference grid used for resampling during the
@@ -599,6 +601,7 @@ class RandomAffine(Transformation):
 
     Args:
         angles: The interval for rotation angles in degrees. In a 3D context:
+
             * If angles is a scalar s, the boundary list will be
                 [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s| represents
                 the absolute value of s.
@@ -609,21 +612,22 @@ class RandomAffine(Transformation):
             * angles can also have the following form:
                 [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
             The default value is None representing no rotation.
+
         translation: The interval for translation components. Similar
-            format to that of angels are allowed. The default is None,
+            formats to that of angles are allowed. The default is None,
             representing no translation.
         scales: A scale factor. The default is None, representing no scaling. If
             it is not None, it should have the following format:
                 [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
         interpolator: The interpolator used by the
-            transformation. The default is ``sitk.sitkBSpline``.
+            transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
         mask_background: The value used as the default for mask voxels.
         reference: The reference grid used for resampling during the
             transformation. The default is None, meaning that the image (mask)
             itself is used for resampling.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     DIMENSION = 3
@@ -744,6 +748,7 @@ class RandomRotation(Transformation):
 
     Args:
         angles: The interval for rotation angles in degrees. In a 3D context:
+
             * If angles is a scalar s, the boundary list will be
                 [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s| represents
                 the absolute value of s.
@@ -754,15 +759,16 @@ class RandomRotation(Transformation):
             * angles can also have the following form:
                 [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
             The default value is None representing no rotation.
+
         interpolator: The interpolator used by the
-            transformation. The default is ``sitk.sitkBSpline``.
+            transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
         mask_background: The value used as the default for mask voxels.
         reference: The reference grid used for resampling during the
             transformation. The default is None, meaning that the image (mask)
             itself is used for resampling.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     DIMENSION = 3
@@ -868,7 +874,7 @@ class Flip(Transformation):
         axes (tuple): A list of boolean values for each dimension.
             Default value is [False, True, False] representing horizontal flip.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, axes: Tuple = (True, False, False), p=1.0):
@@ -911,7 +917,7 @@ class RandomFlipX(Transformation):
 
     Args:
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, p: float = 1.0):
@@ -956,7 +962,7 @@ class RandomFlipY(Transformation):
 
     Args:
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, p: float = 1.0):
@@ -1002,7 +1008,7 @@ class RandomFlipZ(Transformation):
 
     Args:
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, p: float = 1.0):
@@ -1101,7 +1107,7 @@ class RandomCrop(Transformation):
     Args:
         size: The size of the region to be extracted.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, size: Tuple, p: float = 1.0):
@@ -1164,10 +1170,10 @@ class CenterCrop(Transformation):
             the size of the crop across each dimension of an image.
             If an integer value is provided, it is considered as a tuple of
             3 elements, all equal to the input image.
-            Note: The dimension is in (x, y, z) order, which is
-                (width, height, depth).
+            Note: The dimension is in (x, y, z) order, which is (width,
+            height, depth).
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, size: Union[int, Tuple[int, int, int]], p: float = 1.0):
@@ -1189,8 +1195,7 @@ class CenterCrop(Transformation):
         Returns:
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
-                parameter is None, this would also be None.
-
+            parameter is None, this would also be None.
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1218,22 +1223,23 @@ class RandomSegmentSafeCrop(Transformation):
     """Crop an image and a mask randomly while keeping some regions of interest.
 
     Regions of interest can be defined using a mask. Unlike many other
-        transformation, this transformation requires a mask.
-        This transformation falls back to random crop when there region of
-        interest is empty. If crop size is less than segment size (in any
-        dimension), a random crop is made from the segment.
+    transformation, this transformation requires a mask. This transformation
+    falls back to random crop when there region of interest is empty. If crop
+    size is less than segment size (in any dimension), a random crop is made
+    from the segment.
 
     Args:
         crop_size: Minimum size of the cropped region. Like all parameters in
             this package, the dimension order is (x, y, z), i.e. (width, height,
             depth).
-        include: Sequence of unique ids for each
-            interested segment in the image. Default is `[1]`.
+        include: Sequence of unique ids for each segment of interest in the
+        image. Default is `tuple([1])`.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
-    def __init__(self, crop_size: Tuple, include: Sequence = (1,), p: float = 1.0):
+    def __init__(self, crop_size: Tuple, include: Sequence = (1,),
+                 p: float = 1.0):
         assert p > 0
         self.crop_size = np.array(crop_size)
         self.include = include
@@ -1253,7 +1259,6 @@ class RandomSegmentSafeCrop(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         if mask is None or image is None:
             raise ValueError("SegmentSafeCrop requires an image and a mask.")
@@ -1311,7 +1316,7 @@ class SegmentCrop(Transformation):
     """Crop a region of interest from an image and its mask.
 
     Regions of interest is defined using a mask. Unlike many other
-        transformation, this transformation requires a mask.
+    transformations, this transformation requires a mask.
 
     Args:
         include: Sequence of unique ids for each segment of interest in the
@@ -1320,7 +1325,7 @@ class SegmentCrop(Transformation):
             is empty; if 'ignore' the transformation does not have any effect on
             the image and mask.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, include: Sequence = (1,), if_missing="raise", p: float = 1.0):
@@ -1344,7 +1349,6 @@ class SegmentCrop(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         if mask is None or image is None:
             raise ValueError("SegmentCrop requires an image and a mask.")
@@ -1391,26 +1395,27 @@ class Resize(Transformation):
     Args:
         size: A tuple of int values representing image size. The order of
             dimensions should be (x, y, z), i.e. (width, height, and depth).
-        interpolator: A SimpleITK interpolator function.
-            The default interpolator for image is ``sitk.sitkBSpline``. Other
-            options for interpolations are:
-                * ``sitk.sitkLinear``
-                * ``sitk.sitkGaussian``
-                * ``sitk.sitkNearestNeighbor``
-                * ``sitk.sitkHammingWindowedSinc``
-                * ``sitk.sitkBlackmanWindowedSinc``
-                * ``sitk.sitkCosineWindowedSinc``
-                * ``sitk.sitkWelchWindowedSinc``
-                * ``sitk.sitkLanczosWindowedSinc``
+        interpolator: A SimpleITK interpolator function. The default
+            interpolator for image is `sitk.sitkBSpline`. Other options for
+            interpolations are:
 
-            A mask is always interpolated using ``sitk.sitkNearestNeighbor`` to
+                * `sitk.sitkLinear`
+                * `sitk.sitkGaussian`
+                * `sitk.sitkNearestNeighbor`
+                * `sitk.sitkHammingWindowedSinc`
+                * `sitk.sitkBlackmanWindowedSinc`
+                * `sitk.sitkCosineWindowedSinc`
+                * `sitk.sitkWelchWindowedSinc`
+                * `sitk.sitkLanczosWindowedSinc`
+
+            A mask is always interpolated using `sitk.sitkNearestNeighbor` to
             avoid introducing new labels.
         default_image_voxel_value: Set the image voxel value when a transformed
-            a voxel is outside of the image volume. The default value is ``0``.
+            voxel is outside of the image volume. The default value is `0`.
         default_mask_voxel_value: Set the mask voxel value when a transformed
-            a voxel is outside of the mask volume. The default value is ``0``.
-        p: The transformation is applied with a probability of ``p``.
-            The default value is ``1.0``.
+            voxel is outside of the mask volume. The default value is `0`.
+        p: The transformation is applied with a probability of `p`.
+            The default value is `1.0`.
     """
 
     def __init__(
@@ -1443,7 +1448,6 @@ class Resize(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if image.GetDimension() != len(self.size):
@@ -1504,30 +1508,31 @@ class Expand(Transformation):
     """Enlarge an image by an integer factor in each dimension.
 
     Given an image with size of (m, n, k), applying this transformation using an
-        expansion factor of (a, b, c) results in an image of size (a * m, b * n,
-        c * k). The transformed image (mask) is obtained by interpolating
-        the input image (mask). The voxel will change after applying this
-        transformation.
+    expansion factor of (a, b, c) results in an image of size (a * m, b * n,
+    c * k). The transformed image (mask) is obtained by interpolating the
+    input image (mask). The voxel will change after applying this
+    transformation.
 
     Args:
         expansion: A tuple of positive integer values representing the scale
             factors for each dimension.
         interpolator: A SimpleITK interpolator function.
-            The default interpolator for image is ``sitk.sitkLinear``. Other
+            The default interpolator for image is `sitk.sitkLinear`. Other
             options for interpolations are:
-                * ``sitk.sitkBSpline``
-                * ``sitk.sitkGaussian``
-                * ``sitk.sitkNearestNeighbor``
-                * ``sitk.sitkHammingWindowedSinc``
-                * ``sitk.sitkBlackmanWindowedSinc``
-                * ``sitk.sitkCosineWindowedSinc``
-                * ``sitk.sitkWelchWindowedSinc``
-                * ``sitk.sitkLanczosWindowedSinc``
 
-            A mask is always interpolated using ``sitk.sitkNearestNeighbor`` to
+                * `sitk.sitkBSpline`
+                * `sitk.sitkGaussian`
+                * `sitk.sitkNearestNeighbor`
+                * `sitk.sitkHammingWindowedSinc`
+                * `sitk.sitkBlackmanWindowedSinc`
+                * `sitk.sitkCosineWindowedSinc`
+                * `sitk.sitkWelchWindowedSinc`
+                * `sitk.sitkLanczosWindowedSinc`
+
+            A mask is always interpolated using `sitk.sitkNearestNeighbor` to
             avoid introducing new labels.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, expansion: tuple, interpolator=sitk.sitkLinear, p: float = 1.0):
@@ -1551,7 +1556,6 @@ class Expand(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1574,16 +1578,16 @@ class Expand(Transformation):
 class Shrink(Transformation):
     """Shrink an image by an integer factor in each dimension.
 
-    Given an image with size of (m, n, k), applying this transformation
-        using an expansion factor of (a, b, c) results in an image of size
-        (a // m, b // n, c // k), where // represents integer division.
-        The voxel spacing will change after applying this transformation.
+    Given an image with size of (m, n, k), applying this transformation using
+    an expansion factor of (a, b, c) results in an image of size
+    (a // m, b // n, c // k), where // represents integer division. The voxel
+    spacing will change after applying this transformation.
 
     Args:
         shrinkage: A tuple of positive integer values representing the
             shrinkage factors for each dimension.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, shrinkage: Tuple[int, int, int], p: float = 1.0):
@@ -1629,9 +1633,9 @@ class Invert(Transformation):
 
     Args:
         maximum: The maximum intensity value used for inverting voxel values.
-            A voxel value ``v`` is transformed to ``maximum - v``.
+            A voxel value `v` is transformed to `maximum - v`.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, maximum: Union[int, float, None] = None, p: float = 1.0):
@@ -1653,7 +1657,6 @@ class Invert(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1678,7 +1681,7 @@ class BinomialBlur(Transformation):
     Args:
         repetition: The number of times to repeat the smoothing filter.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, repetition=1, p=1.0):
@@ -1701,7 +1704,6 @@ class BinomialBlur(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1721,13 +1723,13 @@ class SaltPepperNoise(Transformation):
 
     Args:
         noise_prob: The noise probability to be applied on a image. The default
-        is ``0.01``.
+            is `0.01`.
         noise_range: A tuple of size 2 representing the lower and upper
             bounds of noise values.
         random_seed (int): Random integer number to set seed for random noise
             generation. Default is `None`.
         p: The transformation is applied with a probability of p. The default
-        is ``1.0``.
+        is `1.0`.
     """
 
     def __init__(
@@ -1769,7 +1771,6 @@ class SaltPepperNoise(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1797,11 +1798,11 @@ class AdditiveGaussianNoise(Transformation):
 
     Args:
         mean: The mean value of the gaussian distribution used for noise
-            generation. The default value is ``0.0``.
-        std: The standard deviation fo the gaussian distribution used for
-            noise generation. The default value is ``1.0``.
+            generation. The default value is `0.0`.
+        std: The standard deviation of the gaussian distribution used for
+            noise generation. The default value is `1.0`.
         p: The transformation is applied with a probability of p. The default
-            value is ``1.0``.
+            value is `1.0`.
     """
 
     def __init__(self, mean: float = 0.01, std: float = 1.0, p: float = 1.0):
@@ -1842,17 +1843,17 @@ class AdditiveGaussianNoise(Transformation):
 class MinMaxScaler(Transformation):
     """Linearly transform voxel values to a given range.
 
-    This transformation does not affect masks. This transformation convert an
-       constant image to a constant image where all voxels are equal to the
-       provided maximum value.
+    This transformation does not affect masks. This transformation converts
+    an image, so that the voxels in the resulting image are equal to the
+    provided maximum value.
 
     Args:
         min_value (float): The minimum value in the converted image. The
-           default value is ``0``.
+           default value is `0`.
         max_value (float): The maximum value in the converted image. The
-           default value is ``1``.
+           default value is `1`.
         p: The transformation is applied with a probability of p.
-           The default value is ``1.0``.
+           The default value is `1.0`.
     """
 
     def __init__(self, min_value=0, max_value=1, p: float = 1.0):
@@ -1876,7 +1877,6 @@ class MinMaxScaler(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1896,13 +1896,13 @@ class MinMaxScaler(Transformation):
 
 
 class UnitNormalize(Transformation):
-    """Normalize an mage by transforming mean to ``0`` and variance to ``1``.
+    """Normalize an image by transforming mean to `0` and variance to `1`.
 
     This transformation does not affect masks.
 
     Args:
-        p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+        p: The transformation is applied with a probability of p. The default
+            value is `1.0`.
     """
 
     def __init__(self, p: float = 1.0):
@@ -1923,7 +1923,6 @@ class UnitNormalize(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1943,11 +1942,11 @@ class WindowLocationClip(Transformation):
         window: Positive integer value as window size, representing the
             range that any voxel values outside this range will be clipped to
             the lower bound and upper bound of this range. The center of the
-            window is the ``location``, i.e. the range will be:
-            ``(location - window // 2, location + window // 2)``, where // is
+            window is the `location`, i.e. the range will be:
+            `(location - window // 2, location + window // 2)`, where // is
             integer division.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, location, window, p=1.0):
@@ -1970,7 +1969,6 @@ class WindowLocationClip(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1990,12 +1988,12 @@ class Clip(Transformation):
     This transformation does not affect the masks.
 
     Args:
-        lower_bound: Any voxel values less than ``lower_bound`` will be clipped
-            to ``lower_bound``
-        upper_bound: Any voxel values greater than ``upper_bound`` will be
-            clipped to ``upper_bound``
+        lower_bound: Any voxel values less than `lower_bound` will be clipped
+            to `lower_bound`
+        upper_bound: Any voxel values greater than `upper_bound` will be
+            clipped to `upper_bound`
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, lower_bound, upper_bound, p: float = 1.0):
@@ -2018,7 +2016,6 @@ class Clip(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -2037,36 +2034,37 @@ class Clip(Transformation):
 class IsolateRange(Transformation):
     """Set voxel values outside a given range to a given constant.
 
-    This object provide the option to manipulate the outside range in a mask
-        image. The outside region for the mask can be set to a specific value.
-        Also, the region outside the clipped range can be set to a constant
-        value.
-        Note: The boundaries defined by the threshold values are considered as
-            inside region and will not be affected.
+    This object provides the option to manipulate the outside range in a mask
+    image. The outside region for the mask can be set to a specific value.
+    Also, the region outside the clipped range can be set to a constant
+    value.
+    Note: The boundaries defined by the threshold values are considered as
+    inside region and will not be affected.
+
     Args:
         lower_bound: Any voxel values less than this parameter will be set to
-            ``image_outside_value``. If  ``recalculate_mask`` is True,
+            `image_outside_value`. If  `recalculate_mask` is True,
             corresponding voxel values in the mask will be set to
-            ``mask_outside_value``.
+            `mask_outside_value`.
         upper_bound: Any voxel values greater than this parameter will be set to
-            ``image_outside_value``. If  ``recalculate_mask`` is True,
+            `image_outside_value`. If  `recalculate_mask` is True,
             corresponding voxel values in the mask will be set to
-            ``mask_outside_value``.
+            `mask_outside_value`.
         image_outside_value: This value is used to set the value of outside
             voxels in the image. Any voxel with a value less than
-            ``lower_bound`` or greater than ``upper_bound`` is considered
-             to be in the outside region. The default is ``0``.
+            `lower_bound` or greater than `upper_bound` is considered
+             to be in the outside region. The default is `0`.
         mask_outside_value: This value is used to set the value of outside
             voxels in the mask. Any voxel with a value less than
-            ``lower_bound`` or greater than ``upper_bound`` is considered
-             to be in the outside region. If ``recalculate_mask`` is False,
-             this is ignored. The default is ``0``.
+            `lower_bound` or greater than `upper_bound` is considered
+             to be in the outside region. If `recalculate_mask` is False,
+             this is ignored. The default is `0`.
         recalculate_mask: If True and the mask is not None, the voxel values
             mask representing the outside region are replaced with
-            ``image_outside_value``. If False, the mask is not affected
+            `image_outside_value`. If False, the mask is not affected
              by this transformation.
-        p: The transformation is applied with a probability of ``p``.
-            The default value is ``1.0``.
+        p: The transformation is applied with a probability of `p`.
+            The default value is `1.0`.
 
     Raises:
         ValueError: If recalculate_mask is True and mask is None.
@@ -2108,7 +2106,6 @@ class IsolateRange(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if self.recalculate_mask is True and mask is None:
@@ -2146,7 +2143,7 @@ class IsolateRange(Transformation):
 
 
 class IntensityRangeTransfer(Transformation):
-    """Apply a linear transformations to the voxel values in a given range.
+    """Apply a linear transformation to the voxel values in a given range.
 
     Applies a linear transformation to the image voxel values of an image that
         are inside a user-defined range.
@@ -2158,6 +2155,7 @@ class IntensityRangeTransfer(Transformation):
             no casting will be applied. The default is None. Assuming that
             SimpleITK has been imported as sitk. The following
             options can be used:
+
                 * sitk.sitkUInt8:	Unsigned 8 bit integer
                 * sitk.sitkInt8:	Signed 8 bit integer
                 * sitk.sitkUInt16:	Unsigned 16 bit integer
@@ -2168,8 +2166,9 @@ class IntensityRangeTransfer(Transformation):
                 * sitk.sitkInt64:	Signed 64 bit integer
                 * sitk.sitkFloat32:	32 bit float
                 * sitk.sitkFloat64:	64 bit float
+
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(self, interval: tuple, cast=None, p=1.0):
@@ -2194,7 +2193,6 @@ class IntensityRangeTransfer(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -2217,31 +2215,31 @@ class IntensityRangeTransfer(Transformation):
 class AdaptiveHistogramEqualization(Transformation):
     """Histogram equalization modifies the contrast in an image.
 
-        This transformation uses the AdaptiveHistogramEqualizationImageFilter
-            from SimpleITK. "AdaptiveHistogramEqualization can produce an
-            adaptively equalized histogram or a version of unsharp mask
-            (local mean subtraction). Instead of applying a strict histogram
-            equalization in a window about a pixel, this filter prescribes a
-            mapping function (power law) controlled by the parameters alpha and
-            beta."
+    This transformation uses the AdaptiveHistogramEqualizationImageFilter
+    from SimpleITK.
+        AdaptiveHistogramEqualization can produce an adaptively equalized
+        histogram or a version of unsharp mask (local mean subtraction).
+        Instead of applying a strict histogram equalization in a window about a
+        pixel, this filter prescribes a mapping function (power law)
+        controlled by the parameters alpha and beta.
 
     Args:
         alpha: This parameter controls the behaviour of the transformation. A
-            value of ``alpha=0`` makes the transformation to act like classical
-            histogram equalization and a value of ``alpha=1`` makes the
-            transformation to act like a unsharp mask. The values between make a
+            value of `alpha=0` makes the transformation act like classical
+            histogram equalization and a value of `alpha=1` makes the
+            transformation act like a unsharp mask. The values between make a
             trade-off. The default is
-            ``0.5``.
+            `0.5`.
         beta: This parameter controls the behaviour of the transformation. A
-            value of ``beta=0`` makes the transformations to act like an unsharp
-            mask and a value of ``beta=1`` makes the transformation to act like
+            value of `beta=0` makes the transformations act like an unsharp
+            mask and a value of `beta=1` makes the transformation to act like
             a pass through filter (beta=1, with alpha=1). The default is
-            ``0.5``.
-       radius: This value controls the size of the region over which the local
-            statistics are calculated. The default value for Radius is `2` in
+            `0.5`.
+        radius: This value controls the size of the region over which the local
+            statistics are calculated. The default value for radius is `2` in
             all directions.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
     def __init__(self, alpha=1.0, beta=0.5, radius=2, p=1.0):
         self.alpha = alpha
@@ -2267,7 +2265,6 @@ class AdaptiveHistogramEqualization(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         if random.random() <= self.p:
             image, _ = apply_transform(self.filter, image)
@@ -2287,11 +2284,11 @@ class MaskImage(Transformation):
         segment_label: The label of the segment used for determining the
             region to be kept.
         image_outside_value: All image voxel values that do not correspond to
-            the ``segment_label`` are set to this value. The default is ``0``.
+            the `segment_label` are set to this value. The default is `0`.
         mask_outside_label: All mask voxel values that are not equal to the
-            ``segment_label`` are set to this value. The default is ``0``.
+            `segment_label` are set to this value. The default is `0`.
         p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+            The default value is `1.0`.
     """
 
     def __init__(
@@ -2319,7 +2316,6 @@ class MaskImage(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         if mask is None:
             msg = "mask cannot be None for AdaptiveHistogramEqualization."
@@ -2349,10 +2345,10 @@ class BinaryFillHole(Transformation):
 
     Args:
         foreground_value(float): Set the value in the image to consider as
-            "foreground". Defaults to `maximum value` of InputPixelType if this
+            foreground. Defaults to the maximum value of InputPixelType if
             this parameter is `None`.
-        p: The transformation is applied with a probability of p.
-            The default value is ``1.0``.
+        p: The transformation is applied with a probability of p. The default
+            value is `1.0`.
     """
 
     def __init__(self, foreground_value=1, p: float = 1.0):
@@ -2376,7 +2372,6 @@ class BinaryFillHole(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         if mask is None:
             raise ValueError("mask cannot be None.")
@@ -2419,6 +2414,9 @@ class BinaryErode(Transformation):
 
 
 class BinaryDilate(Transformation):
+    """Dilate the mask.
+
+    """
     def __init__(
         self,
         background: int = 0,
@@ -2469,53 +2467,52 @@ class Isotropic(Transformation):
 
     Args:
         interpolator= The interpolator used for resampling. The default is
-            ``sitk.sitkLinear``. Other options for interpolations are:
-                * ``sitk.sitkBSpline``
-                * ``sitk.sitkGaussian``
-                * ``sitk.sitkNearestNeighbor``
-                * ``sitk.sitkHammingWindowedSinc``
-                * ``sitk.sitkBlackmanWindowedSinc``
-                * ``sitk.sitkCosineWindowedSinc``
-                * ``sitk.sitkWelchWindowedSinc``
-                * ``sitk.sitkLanczosWindowedSinc``
-            The interpolation for mask is always ``sitk.sitkNearestNeighbor``.
+            `sitk.sitkLinear`. Other options for interpolations are:
+
+                * `sitk.sitkBSpline`
+                * `sitk.sitkGaussian`
+                * `sitk.sitkNearestNeighbor`
+                * `sitk.sitkHammingWindowedSinc`
+                * `sitk.sitkBlackmanWindowedSinc`
+                * `sitk.sitkCosineWindowedSinc`
+                * `sitk.sitkWelchWindowedSinc`
+                * `sitk.sitkLanczosWindowedSinc`
+
+            The interpolation for mask is always `sitk.sitkNearestNeighbor`.
         output_spacing: A single number representing the spacing in all
-            directions. The default is ``1``.
+            directions. The default is `1`.
         default_image_voxel_value: The default value for new image voxels.
-            The default is ``0``.
+            The default is `0`.
         default_mask_voxel_value: The default value for new voxel mask voxels.
-            The default is ``0``.
+            The default is `0`.
         output_image_voxel_type: The voxel type of the output image. The
-            default is ``None``, meaning that the voxel type is the same as the
+            default is `None`, meaning that the voxel type is the same as the
             image.
         output_mask_voxel_type: The voxel type of the output mask. The
-            default is ``None``, meaning that the voxel type is the same as
+            default is `None`, meaning that the voxel type is the same as
             the mask.
         output_direction: The direction of image and mask (both assumed to be
-            the same). The default is ``None``, meaning that the direction is
-           is inferred from the image and mask.
+            the same). The default is `None`, meaning that the direction is
+            inferred from the image and mask.
         output_origin: The origin of image and mask (both assumed to be
-            the same). The default is ``None``, meaning that the origin is
+            the same). The default is `None`, meaning that the origin is
            is inferred from the image and mask.
         use_nearest_neighbor_extrapolator: Use the nearest neighbour for
-            extrapolations. The default is ``True``.
-        dimension: The dimension of the image and mask. The default is ``3``.
-
+            extrapolations. The default is `True`.
+        dimension: The dimension of the image and mask. The default is `3`.
     """
 
-    def __init__(
-        self,
-        interpolator=sitk.sitkLinear,
-        output_spacing: float = 1,
-        default_image_voxel_value=0,
-        default_mask_voxel_value=0,
-        output_image_voxel_type=None,
-        output_mask_voxel_type=None,
-        output_direction=None,
-        output_origin=None,
-        use_nearest_neighbor_extrapolator: bool = True,
-        dimension: int = 3,
-    ):
+    def __init__(self,
+                 interpolator=sitk.sitkLinear,
+                 output_spacing: float = 1,
+                 default_image_voxel_value=0,
+                 default_mask_voxel_value=0,
+                 output_image_voxel_type=None,
+                 output_mask_voxel_type=None,
+                 output_direction=None,
+                 output_origin=None,
+                 use_nearest_neighbor_extrapolator: bool = True,
+                 dimension: int = 3):
         output_spacing = (output_spacing,) * dimension
         self.resampler = Resample(
             interpolator=interpolator,
@@ -2543,7 +2540,6 @@ class Isotropic(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         return self.resampler(image, mask)
 
@@ -2558,38 +2554,39 @@ class Resample(Transformation):
 
     Args:
         interpolator= The interpolator used for resampling. The default is
-            ``sitk.sitkLinear``. Other options for interpolations are:
-                * ``sitk.sitkBSpline``
-                * ``sitk.sitkGaussian``
-                * ``sitk.sitkNearestNeighbor``
-                * ``sitk.sitkHammingWindowedSinc``
-                * ``sitk.sitkBlackmanWindowedSinc``
-                * ``sitk.sitkCosineWindowedSinc``
-                * ``sitk.sitkWelchWindowedSinc``
-                * ``sitk.sitkLanczosWindowedSinc``
-            The interpolation for mask is always ``sitk.sitkNearestNeighbor``.
+            `sitk.sitkLinear`. Other options for interpolations are:
+
+                * `sitk.sitkBSpline`
+                * `sitk.sitkGaussian`
+                * `sitk.sitkNearestNeighbor`
+                * `sitk.sitkHammingWindowedSinc`
+                * `sitk.sitkBlackmanWindowedSinc`
+                * `sitk.sitkCosineWindowedSinc`
+                * `sitk.sitkWelchWindowedSinc`
+                * `sitk.sitkLanczosWindowedSinc`
+
+            The interpolation for mask is always `sitk.sitkNearestNeighbor`.
         output_spacing: A tuple representing the spacing in each directions.
             The order of directions is x (height), y (width), and z (depth).
-            The default is ``(1, 1, 1)``.
+            The default is `(1, 1, 1)`.
         default_image_voxel_value: The default value for new image voxels.
-            The default is ``0``.
+            The default is `0`.
         default_mask_voxel_value: The default value for new voxel mask voxels.
-            The default is ``0``.
+            The default is `0`.
         output_image_voxel_type: The voxel type of the output image. The
-            default is ``None``, meaning that the voxel type is the same as the
+            default is `None`, meaning that the voxel type is the same as the
             image.
         output_mask_voxel_type: The voxel type of the output mask. The
-            default is ``None``, meaning that the voxel type is the same as
+            default is `None`, meaning that the voxel type is the same as
             the mask.
         output_direction: The direction of image and mask (both assumed to be
-            the same). The default is ``None``, meaning that the direction is
-           is inferred from the image and mask.
+            the same). The default is `None`, meaning that the direction is
+            inferred from the image and mask.
         output_origin: The origin of image and mask (both assumed to be
-            the same). The default is ``None``, meaning that the origin is
-           is inferred from the image and mask.
+            the same). The default is `None`, meaning that the origin
+            is inferred from the image and mask.
         use_nearest_neighbor_extrapolator: Use the nearest neighbor for
-            extrapolations. The default is ``True``.
-
+            extrapolations. The default is `True`.
     """
 
     def __init__(
@@ -2631,7 +2628,6 @@ class Resample(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         check_dimensions(image, mask)
         if image is not None:
@@ -2654,16 +2650,18 @@ class Resample(Transformation):
         """A helper function for resampling one image.
         Args:
             interpolator: The interpolator used for resampling. The default is
-                ``sitk.sitkLinear``. Other options for interpolations are:
-                    * ``sitk.sitkBSpline``
-                    * ``sitk.sitkGaussian``
-                    * ``sitk.sitkNearestNeighbor``
-                    * ``sitk.sitkHammingWindowedSinc``
-                    * ``sitk.sitkBlackmanWindowedSinc``
-                    * ``sitk.sitkCosineWindowedSinc``
-                    * ``sitk.sitkWelchWindowedSinc``
-                    * ``sitk.sitkLanczosWindowedSinc``
-                The interpolator for mask must be ``sitk.sitkNearestNeighbor``;
+                `sitk.sitkLinear`. Other options for interpolations are:
+
+                    * `sitk.sitkBSpline`
+                    * `sitk.sitkGaussian`
+                    * `sitk.sitkNearestNeighbor`
+                    * `sitk.sitkHammingWindowedSinc`
+                    * `sitk.sitkBlackmanWindowedSinc`
+                    * `sitk.sitkCosineWindowedSinc`
+                    * `sitk.sitkWelchWindowedSinc`
+                    * `sitk.sitkLanczosWindowedSinc`
+
+                The interpolator for mask must be `sitk.sitkNearestNeighbor`;
                     otherwise, the interpolation introduces new labels in
                     the returned mask.
             default_voxel_value: The default value for new image (or mask)
@@ -2730,59 +2728,58 @@ class Reader(Transformation):
     """Load image and its corresponding mask (if provided) from their addresses.
 
     Each address could be a directory address or the DICOM file address.
-
     """
 
     def __init__(self):
         pass
 
-    def __call__(
-        self, image_path: Union[str, None], mask_path: Union[str, None] = None
-    ):
-        """
+    def __call__(self, image_path: Union[str, None],
+                 mask_path: Union[str, None] = None):
+        """Read an image and its mask (if applicable) from the file.
 
         Args:
             image_path: The address of an image. This could be a the
                 address of a directory containing a dicom file or the address of
                 a single file containing an image. All file formats supported
                 IO file formats include:
-                    * BMPImageIO (*.bmp, *.BMP)
-                    * BioRadImageIO (*.PIC, *.pic)
-                    * GiplImageIO (*.gipl *.gipl.gz)
-                    * JPEGImageIO (*.jpg, *.JPG, *.jpeg, *.JPEG)
-                    * LSMImageIO (*.tif, *.TIF, *.tiff, *.TIFF, *.lsm, *.LSM)
-                    * MINCImageIO (*.mnc, *.MNC)
-                    * MRCImageIO (*.mrc, *.rec)
-                    * MetaImageIO (*.mha, *.mhd)
-                    * NiftiImageIO (*.nia, *.nii, *.nii.gz, *.hdr,
-                                   *.img, *.img.gz)
-                    * NrrdImageIO (*.nrrd, *.nhdr)
-                    * PNGImageIO (*.png, *.PNG)
-                    * TIFFImageIO (*.tif, *.TIF, *.tiff, *.TIFF)
-                    * VTKImageIO (*.vtk)
+
+                    * BMPImageIO (.bmp, .BMP)
+                    * BioRadImageIO (.PIC, .pic)
+                    * GiplImageIO (.gipl .gipl.gz)
+                    * JPEGImageIO (.jpg, .JPG, .jpeg, .JPEG)
+                    * LSMImageIO (.tif, .TIF, .tiff, .TIFF, .lsm, .LSM)
+                    * MINCImageIO (.mnc, .MNC)
+                    * MRCImageIO (.mrc, .rec)
+                    * MetaImageIO (.mha, .mhd)
+                    * NiftiImageIO (.nia, .nii, .nii.gz, .hdr, .img, .img.gz)
+                    * NrrdImageIO (.nrrd, .nhdr)
+                    * PNGImageIO (.png, .PNG)
+                    * TIFFImageIO (.tif, .TIF, .tiff, .TIFF)
+                    * VTKImageIO (.vtk)
+
             mask_path:The address of a mask. This could be a the address of
                 a directory containing a dicom series or the address of
                 a single file containing an image. All file formats
                 supported Supported IO file formats include:
-                    * BMPImageIO (*.bmp, *.BMP)
-                    * BioRadImageIO (*.PIC, *.pic)
-                    * GiplImageIO (*.gipl *.gipl.gz)
-                    * JPEGImageIO (*.jpg, *.JPG, *.jpeg, *.JPEG)
-                    * LSMImageIO (*.tif, *.TIF, *.tiff, *.TIFF, *.lsm, *.LSM)
-                    * MINCImageIO (*.mnc, *.MNC)
-                    * MRCImageIO (*.mrc, *.rec)
-                    * MetaImageIO (*.mha, *.mhd)
-                    * NiftiImageIO (*.nia, *.nii, *.nii.gz, *.hdr, *.img,
-                        and *.img.gz)
-                    * NrrdImageIO (*.nrrd, *.nhdr)
-                    * PNGImageIO (*.png, *.PNG)
-                    * TIFFImageIO (*.tif, *.TIF, *.tiff, *.TIFF)
-                    * VTKImageIO (*.vtk)
+
+                    * BMPImageIO (.bmp, .BMP)
+                    * BioRadImageIO (.PIC, .pic)
+                    * GiplImageIO (.gipl .gipl.gz)
+                    * JPEGImageIO (.jpg, .JPG, .jpeg, .JPEG)
+                    * LSMImageIO (.tif, .TIF, .tiff, .TIFF, .lsm, .LSM)
+                    * MINCImageIO (.mnc, .MNC)
+                    * MRCImageIO (.mrc, .rec)
+                    * MetaImageIO (.mha, .mhd)
+                    * NiftiImageIO (.nia, .nii, .nii.gz, .hdr, .img, .img.gz)
+                    * NrrdImageIO (.nrrd, .nhdr)
+                    * PNGImageIO (.png, .PNG)
+                    * TIFFImageIO (.tif, .TIF, .tiff, .TIFF)
+                    * VTKImageIO (.vtk)
 
         Returns:
             sitk.Image: An image.
-            sitk.Image: A mask. If the ``mask_path`` parameter is None,
-                this would also be ``None``.
+            sitk.Image: A mask. If the `mask_path` parameter is None,
+                this would also be `None`.
         """
         if (image_path is not None) and not os.path.exists(image_path):
             raise ValueError(f"Invalid address: {image_path}")
@@ -2804,21 +2801,21 @@ class Writer(Transformation):
     """Write image and its corresponding mask (if provided) to file.
 
     Each address should be a file address. The supported IO file formats
-        include:
-        * BMPImageIO (*.bmp, *.BMP)
-        * BioRadImageIO (*.PIC, *.pic)
-        * GiplImageIO (*.gipl *.gipl.gz)
-        * JPEGImageIO (*.jpg, *.JPG, *.jpeg, *.JPEG)
-        * LSMImageIO (*.tif, *.TIF, *.tiff, *.TIFF, *.lsm, *.LSM)
-        * MINCImageIO (*.mnc, *.MNC)
-        * MRCImageIO (*.mrc, *.rec)
-        * MetaImageIO (*.mha, *.mhd)
-        * NiftiImageIO (*.nia, *.nii, *.nii.gz, *.hdr, *.img, *.img.gz)
-        * NrrdImageIO (*.nrrd, *.nhdr)
-        * PNGImageIO (*.png, *.PNG)
-        * TIFFImageIO (*.tif, *.TIF, *.tiff, *.TIFF)
-        * VTKImageIO (*.vtk)
+    include:
 
+        * BMPImageIO (.bmp, .BMP)
+        * BioRadImageIO (.PIC, .pic)
+        * GiplImageIO (.gipl .gipl.gz)
+        * JPEGImageIO (.jpg, .JPG, .jpeg, .JPEG)
+        * LSMImageIO (.tif, .TIF, .tiff, .TIFF, .lsm, .LSM)
+        * MINCImageIO (.mnc, .MNC)
+        * MRCImageIO (.mrc, .rec)
+        * MetaImageIO (.mha, .mhd)
+        * NiftiImageIO (.nia, .nii, .nii.gz, .hdr, .img, .img.gz)
+        * NrrdImageIO (.nrrd, .nhdr)
+        * PNGImageIO (.png, .PNG)
+        * TIFFImageIO (.tif, .TIF, .tiff, .TIFF)
+        * VTKImageIO (.vtk)
     """
 
     def __init__(self):
@@ -2843,10 +2840,10 @@ class Writer(Transformation):
             mask: A SimpleITK Image representing the contours for the image.
                 The default value is None. If mask is not None, its size should
                 be equal to the size of the image.
-            image_path: The path in which ``image`` is saved. The file name
+            image_path: The path in which `image` is saved. The file name
                 should be at the end of the path and the extension should be the
                 extension for a valid file type.
-            mask_path: The path in which ``mask`` is saved.  The file name
+            mask_path: The path in which `mask` is saved.  The file name
                 should be at the end of the path and the extension should be the
                 extension for a valid file type.
             image_type: The image type used for casting the image. The
@@ -2855,7 +2852,7 @@ class Writer(Transformation):
                 default is None, meaning that no casting is applied by default.
                 If applied, for most cases this should be sitk.sitkUInt8. In
                 case the labels used in the mask are larger than 255,
-                ``sitk.sitkUInt16``, ``sitk.sitkUInt32``, or ``sitk.sitkUInt64``
+                `sitk.sitkUInt16`, `sitk.sitkUInt32`, or `sitk.sitkUInt64`
                 should be used. If negative values are included in the labels
                 of the mask, use sitk.sitkInt8, sitk.sitkInt16, or
                 sitk.sitkUInt32. Note that using larger data types lead to
@@ -2868,7 +2865,6 @@ class Writer(Transformation):
                 not all file formats support compression.
             compression_level: The compression level used for compression. The
                 default is -1, representing the default compression level.
-
         """
         check_dimensions(image, mask)
         if image is not None:
@@ -2901,32 +2897,32 @@ class SequentialWriter(Transformation):
     """Write image and its corresponding mask (if provided) to files.
 
     Each address should be a file address. The supported IO file formats
-        include:
-        * BMPImageIO (*.bmp, *.BMP)
-        * BioRadImageIO (*.PIC, *.pic)
-        * GiplImageIO (*.gipl *.gipl.gz)
-        * JPEGImageIO (*.jpg, *.JPG, *.jpeg, *.JPEG)
-        * LSMImageIO (*.tif, *.TIF, *.tiff, *.TIFF, *.lsm, *.LSM)
-        * MINCImageIO (*.mnc, *.MNC)
-        * MRCImageIO (*.mrc, *.rec)
-        * MetaImageIO (*.mha, *.mhd)
-        * NiftiImageIO (*.nia, *.nii, *.nii.gz, *.hdr, *.img, *.img.gz)
-        * NrrdImageIO (*.nrrd, *.nhdr)
-        * PNGImageIO (*.png, *.PNG)
-        * TIFFImageIO (*.tif, *.TIF, *.tiff, *.TIFF)
-        * VTKImageIO (*.vtk)
+    include:
+
+        - BMPImageIO (.bmp, .BMP)
+        - BioRadImageIO (.PIC, .pic)
+        - GiplImageIO (.gipl .gipl.gz)
+        - JPEGImageIO (.jpg, .JPG, .jpeg, .JPEG)
+        - LSMImageIO (.tif, .TIF, .tiff, .TIFF, .lsm, .LSM)
+        - MINCImageIO (.mnc, .MNC)
+        - MRCImageIO (.mrc, .rec)
+        - MetaImageIO (.mha, .mhd)
+        - NiftiImageIO (.nia, .nii, .nii.gz, .hdr, .img, .img.gz)
+        - NrrdImageIO (.nrrd, .nhdr)
+        - PNGImageIO (.png, .PNG)
+        - TIFFImageIO (.tif, .TIF, .tiff, .TIFF)
+        - VTKImageIO (.vtk)
 
     Args:
-        dir_path: The default is '.', representing the
-        current directory.
-        image_prefix: A string used as the prefix for the saved image names.
-            THe default is 'image'.
-        image_postfix: A string used as the postfix for the saved image names.
-            THe default is empty string.
+        dir_path: The default is `.`, representing the current directory.
+        image_prefix: A string used as the prefix for the saved image
+            names. The default is `image`.
+        image_postfix: A string used as the postfix for the saved image
+            names. The default is empty string.
         mask_prefix: A string used as the prefix for the saved mask names.
-            THe default is 'mask'.
+            The default is 'mask'.
         mask_postfix=: A string used as the postfix for the saved image names.
-            THe default is empty string.
+            The default is empty string.
         extension: The file extension used for saving files. This determines
             the type of the saved file. The default is 'nrrd'.
         image_type: The image type used for casting the image. The
@@ -2935,7 +2931,7 @@ class SequentialWriter(Transformation):
             default is None, meaning that no casting is applied by default.
             If applied, for most cases this should be sitk.sitkUInt8. In case
             the labels used in the mask are larger than 255,
-            ``sitk.sitkUInt16``, ``sitk.sitkUInt32``, or ``sitk.sitkUInt64``
+            `sitk.sitkUInt16`, `sitk.sitkUInt32`, or `sitk.sitkUInt64`
             should be used. If negative values are included in the labels of the
             mask, use sitk.sitkInt8, sitk.sitkInt16, or sitk.sitkUInt32. Note
             that using larger data types lead to increase in memory usage and
@@ -3052,7 +3048,6 @@ class Compose(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         for t in self.transforms:
             image, mask = t(image, mask)
@@ -3095,7 +3090,7 @@ class RandomChoices(Transformation):
                 parameter is None, this would also be None.
 
         Raises:
-            ValueError: If ``k`` is less than the number of provided
+            ValueError: If `k` is less than the number of provided
                 transformations.
         """
         if self.k > len(self.transforms):
@@ -3132,8 +3127,8 @@ class OneOf(Transformation):
     def __call__(self, image, mask=None):
         """Choose one transformation and apply it to an image and its mask.
 
-         If mask is None, the chosen transformation is only applied to the
-            image.
+        If mask is None, the chosen transformation is only applied to the
+        image.
 
         Args:
             image: A SimpleITK Image.
@@ -3145,7 +3140,6 @@ class OneOf(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         tr = random.choice(self.transforms)
         image, mask = tr(image, mask)
@@ -3182,7 +3176,6 @@ class RandomOrder(Transformation):
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
                 parameter is None, this would also be None.
-
         """
         random.shuffle(self.transforms)
         for t in self.transforms:
@@ -3200,11 +3193,11 @@ class Lambda(Transformation):
     Args:
         image_transformer: A callable object, e.g. a Lambda function or a
             regular function used for transforming the image. Default is
-            None, indicting identity transformation, i.e. no change in the
+            None, indicating identity transformation, i.e. no change in the
             image.
         mask_transformer: A callable object, e.g. a Lambda function or a
             regular function used for transforming the mask. Default is
-            None, indicting identity transformation, i.e. no change on the
+            None, indicating identity transformation, i.e. no change on the
             mask.
         p: The transformation is applied with a probability of p.
             The default value is `1.0`.
@@ -3250,10 +3243,10 @@ class ToNumpy(Transformation):
     """Convert an image and its mask (if provided) to Numpy arrays.
 
     Args:
-        out_image_dtype: The numpy datatype used to as the type of the numpy
+        out_image_dtype: The numpy datatype used as the type of the numpy
             array representing the image. If `None`, the output data type is
             inferred from the image.
-        out_mask_dtype: The numpy datatype used to as the type of the numpy
+        out_mask_dtype: The numpy datatype used as the type of the numpy
             array representing the mask. If `None`, the output data type is
             inferred from the mask.
     """
@@ -3332,7 +3325,7 @@ class From2DTo3D(Transformation):
 
     Args:
         repeat (int): Number of times to replicate the 2D image.
-            The default value is ``1``.
+            The default value is `1`.
     """
 
     def __init__(self, repeat=1):
@@ -3436,6 +3429,6 @@ class Cast(Transformation):
 
     def __repr__(self):
         msg = "{} (out_image_dtype={}, out_mask_dtype={})"
-        return msg.format(
-            self.__class__.__name__, self.out_image_dtype, self.out_mask_dtype
-        )
+        return msg.format(self.__class__.__name__,
+                          self.out_image_dtype,
+                          self.out_mask_dtype)
