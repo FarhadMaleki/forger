@@ -88,13 +88,14 @@ def referenced_3D_resample(image,
         sitk.Image: The resampled image.
 
     """
-    if reference is None:
-        reference = image
     if transformation is None:
         # The default is the identity transformation
         transformation = sitk.Transform(image.GetDimension(), sitk.sitkIdentity)
     if image_voxel_type is None:
         image_voxel_type = image.GetPixelIDValue()
+    if reference is None:
+        return sitk.Resample(image, transformation, interpolator,
+                             default_value, image_voxel_type)
     return sitk.Resample(image, reference, transformation, interpolator,
                          default_value, image_voxel_type)
 
@@ -181,12 +182,14 @@ def read_image(image_path: Union[str, None]):
 def get_stats(image):
     """Computes minimum, maximum, sum, mean, variance, and standard deviation of
         an image.
+
     Args:
         image: A sitk.Image object.
 
     Returns:
         returns statistical values of type dictionary include keys 'min',
             'max', 'mean', 'std', and 'var'.
+
     """
     stat_fileter = sitk.StatisticsImageFilter()
     stat_fileter.Execute(image)

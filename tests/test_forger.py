@@ -125,8 +125,10 @@ class TestTransform(unittest.TestCase):
         self.assertEqual(list(msk.GetSize()),
                          [x + 2 * pad
                           for x, pad in zip(image.GetSize(), padding)])
+        with open('/home/fam918/Downloads/oops.txt', 'w') as fout:
+            fout.write(str(set(np.unique(sitk.GetArrayFromImage(msk)))))
         self.assertEqual(set(np.unique(sitk.GetArrayFromImage(msk))),
-                         {0, 1, 2, 3})
+                         {0, 1, 2})
         self.assertEqual(set(np.unique(sitk.GetArrayFromImage(img))),
                          {0, 50, 100, -1024})
         self.assertEqual(img.GetPixelIDValue(), image.GetPixelIDValue())
@@ -144,7 +146,7 @@ class TestTransform(unittest.TestCase):
                          tuple(x + 2 * pad
                                for x, pad in zip(image.GetSize(), padding)))
         self.assertEqual(set(np.unique(sitk.GetArrayFromImage(msk))),
-                         {0, 1, 2, 3})
+                         {0, 1, 2})
         self.assertEqual(set(np.unique(sitk.GetArrayFromImage(img))),
                          {0, 50, 100, -1024})
         self.assertEqual(img.GetPixelIDValue(), image.GetPixelIDValue())
@@ -274,6 +276,15 @@ class TestTransform(unittest.TestCase):
     def test_Flip_X_image_only(self):
         image, mask = TestTransform.load_cube('small')
         tsfm = forger.Flip(axes=(True, False, False), p=1)
+        img, msk = tsfm(image=image)
+        self.assertTrue(TestTransform.checkFilip(image, mask,
+                                                 img, msk, xflip=True,
+                                                 image_only=True))
+
+    def test_Factory(self):
+        image, mask = TestTransform.load_cube('small')
+        tsfm = forger.Factory(forger.Flip, {'axes': [(True, False, False),
+                                                     (True, False, False)]})
         img, msk = tsfm(image=image)
         self.assertTrue(TestTransform.checkFilip(image, mask,
                                                  img, msk, xflip=True,
@@ -856,6 +867,25 @@ class TestTransform(unittest.TestCase):
         self.assertFalse(np.all(sitk.GetArrayFromImage(image) ==
                                 sitk.GetArrayFromImage(img)))
         self.assertEqual(img.GetPixelIDValue(), image.GetPixelIDValue())
+        self.assertEqual(msk.GetPixelIDValue(), mask.GetPixelIDValue())
+
+    def test_UniformNoise(self):
+        image, mask = TestTransform.load_cube('small')
+        image = sitk.Cast(image, sitk.sitkInt32)
+        min_value, max_value = -100, 100
+        tsfm = forger.UniformNoise(min_value, max_value, ratio=0.1,
+                                   dtype=sitk.sitkInt16, seed=1, p=1)
+        img, msk = tsfm(image, mask=mask)
+        # SaltPepperNoise dose not change the mask
+        self.assertTrue(np.all(sitk.GetArrayFromImage(mask) ==
+                               sitk.GetArrayFromImage(msk)))
+        self.assertEqual(image.GetSize(), img.GetSize())
+        # The  input and output image for SaltPepperNoise are different
+        image_array = sitk.GetArrayFromImage(image)
+        img_array = sitk.GetArrayFromImage(img)
+
+        self.assertFalse(np.all(image_array == img_array))
+        self.assertEqual(img.GetPixelIDValue(), sitk.sitkInt16)
         self.assertEqual(msk.GetPixelIDValue(), mask.GetPixelIDValue())
 
     def test_SaltPepperNoise(self):

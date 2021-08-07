@@ -1,5 +1,6 @@
 """ A package for 3D image augmentation
 """
+import itertools
 import os.path
 import random
 from abc import ABC
@@ -34,7 +35,8 @@ class Transformation(ABC):
         pass
 
 
-def apply_transform(transformation, image: sitk.Image, mask: sitk.Image = None):
+def _apply_transform(transformation, image: sitk.Image,
+                     mask: sitk.Image = None):
     """Apply a SimpleITK transformation to an image and its mask (if provided).
 
     Args:
@@ -48,25 +50,25 @@ def apply_transform(transformation, image: sitk.Image, mask: sitk.Image = None):
     return image, mask
 
 
-def expand_parameters(param, dimension, name, convert_fn=None):
+def _expand_parameters(param, dimension, name, convert_fn=None):
     """A helper function for making boundary lists.
 
     The boundary list must be a list of tuples of size 2. For example,
-    in a 3D context this should be:
-        [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
+        in a 3D context this should be:
+                `[(x_min, x_max), (y_min, y_max), (z_min, z_max)]`
 
     Args:
         param: the value used to create the boundary list. In a 3D context:
 
             * If param is a scale s, the boundary list will be
-                [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s|
+                `[(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)]`, where `|s|`
                 represents the absolute value of s.
             * If param is a list of 3 scalar [a, b, c], the
                 boundary list will be
-                [(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)], where |x|
+                `[(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)]`, where `|x|`
                 represents the absolute value of x.
             * param can also have the following form:
-                [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
+                `[(x_min, x_max), (y_min, y_max), (z_min, z_max)]`
 
         dimension: An integer value representing the dimension of images.
         name: The name used for raising errors, if required.
@@ -75,7 +77,7 @@ def expand_parameters(param, dimension, name, convert_fn=None):
 
     Returns:
         A numpy array of the following form
-            numpy.array([(x_min, x_max), (y_min, y_max), (z_min, z_max)]).
+            `numpy.array([(x_min, x_max), (y_min, y_max), (z_min, z_max)])`.
 
     Raises:
          ValueError: If the parameter does not follow one of the valid forms.
@@ -198,8 +200,6 @@ class Pad(Transformation):
         self.pad_lower_bound = pad_lower_bound
         self.pad_upper_bound = pad_upper_bound
         self.background_label = background_label
-        self.pad_lower_bound = pad_lower_bound
-        self.pad_upper_bound = pad_upper_bound
         self.p = p
         if isinstance(padding, int):
             if padding < 0:
@@ -239,15 +239,17 @@ class Pad(Transformation):
                     stats_filter.Execute(bin_image, image)
                     constant = stats_filter.GetMedian(inside_value)
                 self.filter.SetConstant(constant)
-            image = self.filter.Execute(image)
-            if mask is not None:
-                mask_generator = sitk.ConstantPadImageFilter()
-                if self.pad_lower_bound is True:
-                    mask_generator.SetPadLowerBound(self.padding)
-                if self.pad_upper_bound is True:
-                    mask_generator.SetPadUpperBound(self.padding)
-                mask_generator.SetConstant(self.background_label)
-                mask = mask_generator.Execute(mask)
+                image = self.filter.Execute(image)
+                if mask is not None:
+                    mask_generator = sitk.ConstantPadImageFilter()
+                    if self.pad_lower_bound is True:
+                        mask_generator.SetPadLowerBound(self.padding)
+                    if self.pad_upper_bound is True:
+                        mask_generator.SetPadUpperBound(self.padding)
+                    mask_generator.SetConstant(self.background_label)
+                    mask = mask_generator.Execute(mask)
+            else:
+                image, mask = _apply_transform(self.filter, image, mask=mask)
         return image, mask
 
     def __repr__(self):
@@ -448,6 +450,13 @@ class Affine(Transformation):
         reference: The reference grid used for resampling during the
             transformation. The default is None, meaning that the image (mask)
             itself is used for resampling.
+        spacing: The spacing used for the transformed image. Ignored if
+            reference is not None.
+        direction: The direction used for the transformed image. Ignored if
+            reference is not None.
+        reshape: Reshape the canvas for the transformed image to include the
+            entire input image. The default value is False.
+
     """
 
     DIMENSION = 3
@@ -465,7 +474,7 @@ class Affine(Transformation):
         reference=None,
         spacing=None,
         direction=None,
-        reshape=True,
+        reshape=False,
     ):
         if angles is None:
             angles = (0,) * DIMENSION
@@ -561,6 +570,7 @@ class Affine(Transformation):
                     direction=direction,
                 )
         else:
+
             image = referenced_3D_resample(
                 image,
                 affine,
@@ -603,22 +613,21 @@ class RandomAffine(Transformation):
         angles: The interval for rotation angles in degrees. In a 3D context:
 
             * If angles is a scalar s, the boundary list will be
-                [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s| represents
-                the absolute value of s.
+                `[(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)]`, where `|s|`
+                represents the absolute value of s.
             * If angles is a list of 3 scalars [a, b, c], the boundary list
-                will be
-                [(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)], where |a| represents
-                the absolute value of a.
+                will be `[(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)]`, where `|a|`
+                represents the absolute value of a.
             * angles can also have the following form:
-                [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
-            The default value is None representing no rotation.
+                `[(x_min, x_max), (y_min, y_max), (z_min, z_max)]`
 
+            The default value is None representing no rotation.
         translation: The interval for translation components. Similar
             formats to that of angles are allowed. The default is None,
             representing no translation.
         scales: A scale factor. The default is None, representing no scaling. If
             it is not None, it should have the following format:
-                [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
+            `[(x_min, x_max), (y_min, y_max), (z_min, z_max)]`
         interpolator: The interpolator used by the
             transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
@@ -681,7 +690,7 @@ class RandomAffine(Transformation):
         if random.random() <= self.p:
             angles = self.angles
             if angles is not None:
-                angle_intervals = expand_parameters(
+                angle_intervals = _expand_parameters(
                     angles, DIMENSION, "angles", convert_fn=None
                 )
                 angles = tuple(
@@ -690,7 +699,7 @@ class RandomAffine(Transformation):
                 )
             translation = self.translation
             if translation is not None:
-                translation_intervals = expand_parameters(
+                translation_intervals = _expand_parameters(
                     translation, DIMENSION, "translation", convert_fn=None
                 )
                 translation = tuple(
@@ -750,16 +759,16 @@ class RandomRotation(Transformation):
         angles: The interval for rotation angles in degrees. In a 3D context:
 
             * If angles is a scalar s, the boundary list will be
-                [(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)], where |s| represents
+                `[(-|s|, |s|), (-|s|, |s|), (-|s|, |s|)]`, where `|s|` represents
                 the absolute value of s.
             * If angles is a list of 3 scalars [a, b, c], the boundary list
                 will be
-                [(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)], where |a| represents
+                `[(-|a|, |a|), (-|b|, |b|), (-|c|, |c|)]`, where `|a|` represents
                 the absolute value of a.
             * angles can also have the following form:
-                [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
-            The default value is None representing no rotation.
+                `[(x_min, x_max), (y_min, y_max), (z_min, z_max)]`
 
+            The default value is None representing no rotation.
         interpolator: The interpolator used by the
             transformation. The default is `sitk.sitkBSpline`.
         image_background: The value used as the default for image voxels.
@@ -818,7 +827,7 @@ class RandomRotation(Transformation):
         if random.random() <= self.p:
             angles = self.angles
             if angles is not None:
-                angle_intervals = expand_parameters(
+                angle_intervals = _expand_parameters(
                     angles, DIMENSION, "angles", convert_fn=None
                 )
                 angles: Tuple[float, float, float]
@@ -904,7 +913,7 @@ class Flip(Transformation):
         if len(self.axes) != image.GetDimension():
             raise ValueError(msg)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -920,7 +929,7 @@ class RandomFlipX(Transformation):
             The default value is `1.0`.
     """
 
-    def __init__(self, p: float = 1.0):
+    def __init__(self, p: float = 0.5):
         assert p > 0
         self.p = p
         axes = [True, False, False]
@@ -949,7 +958,7 @@ class RandomFlipX(Transformation):
         if image.GetDimension() != DIMENSION:
             raise ValueError(msg)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -965,7 +974,7 @@ class RandomFlipY(Transformation):
             The default value is `1.0`.
     """
 
-    def __init__(self, p: float = 1.0):
+    def __init__(self, p: float = 0.5):
         assert p > 0
         self.p = p
         axes = [False, True, False]
@@ -995,7 +1004,7 @@ class RandomFlipY(Transformation):
             raise ValueError(msg)
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1011,7 +1020,7 @@ class RandomFlipZ(Transformation):
             The default value is `1.0`.
     """
 
-    def __init__(self, p: float = 1.0):
+    def __init__(self, p: float = 0.5):
         assert p > 0
         self.p = p
         self.axes = [False, False, True]
@@ -1040,7 +1049,7 @@ class RandomFlipZ(Transformation):
         if image.GetDimension() != DIMENSION:
             raise ValueError(msg)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1090,15 +1099,16 @@ class Crop(Transformation):
         """
         check_dimensions(image, mask)
         end_coordinate = np.array(self.index) + np.array(self.size)
-        if all(end_coordinate > np.array(image.GetSize())):
+        if any(end_coordinate > np.array(image.GetSize())):
             raise ValueError("size + index cannot be greater than image size")
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
         msg = "{} (size={}, index={}, p={})"
-        return msg.format(self.__class__.__name__, self.size, self.index, self.p)
+        return msg.format(self.__class__.__name__, self.size, self.index,
+                          self.p)
 
 
 class RandomCrop(Transformation):
@@ -1195,7 +1205,7 @@ class CenterCrop(Transformation):
         Returns:
             sitk.Image: The transformed image.
             sitk.Image: The mask for the transformed image. If the mask
-            parameter is None, this would also be None.
+                parameter is None, this would also be None.
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
@@ -1211,7 +1221,7 @@ class CenterCrop(Transformation):
             )
             self.filter.SetSize(self.output_size.tolist())
             self.filter.SetIndex(index.tolist())
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1304,7 +1314,7 @@ class RandomSegmentSafeCrop(Transformation):
             tsfm = sitk.RegionOfInterestImageFilter()
             tsfm.SetSize(crop_size.astype(int).tolist())
             tsfm.SetIndex(np.array(crop_index).astype(int).tolist())
-            image, mask = apply_transform(tsfm, image, mask)
+            image, mask = _apply_transform(tsfm, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1379,7 +1389,7 @@ class SegmentCrop(Transformation):
             tsfm = sitk.RegionOfInterestImageFilter()
             tsfm.SetSize(seg_size.astype(int).tolist())
             tsfm.SetIndex(seg_index.astype(int).tolist())
-            image, mask = apply_transform(tsfm, image, mask)
+            image, mask = _apply_transform(tsfm, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1618,7 +1628,7 @@ class Shrink(Transformation):
             msg = "Image dimension must equal the length of shrinkage."
             raise ValueError(msg)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -1666,7 +1676,7 @@ class Invert(Transformation):
             else:
                 maximum = self.maximum
             self.filter.SetMaximum(maximum)
-            image, _ = apply_transform(self.filter, image)
+            image, _ = _apply_transform(self.filter, image)
         return image, mask
 
     def __repr__(self):
@@ -1707,7 +1717,7 @@ class BinomialBlur(Transformation):
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
         return image, mask
 
     def __repr__(self):
@@ -1774,7 +1784,7 @@ class SaltPepperNoise(Transformation):
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
             if self.min is not None:
                 image_array = sitk.GetArrayFromImage(image)
                 image_array[(image_array < self.min)] = self.min
@@ -1832,7 +1842,7 @@ class AdditiveGaussianNoise(Transformation):
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
         return image, mask
 
     def __repr__(self):
@@ -1926,7 +1936,7 @@ class UnitNormalize(Transformation):
         """
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
         return image, mask
 
     def __repr__(self):
@@ -1974,7 +1984,7 @@ class WindowLocationClip(Transformation):
         if random.random() <= self.p:
             self.filter.SetLowerBound(self.location - self.window)
             self.filter.SetUpperBound(self.location + self.window)
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
         return image, mask
 
     def __repr__(self):
@@ -2021,7 +2031,7 @@ class Clip(Transformation):
         if random.random() <= self.p:
             self.filter.SetLowerBound(self.lower_bound)
             self.filter.SetUpperBound(self.upper_bound)
-            image, _ = apply_transform(self.filter, image)
+            image, _ = _apply_transform(self.filter, image)
         return image, mask
 
     def __repr__(self):
@@ -2035,11 +2045,11 @@ class IsolateRange(Transformation):
     """Set voxel values outside a given range to a given constant.
 
     This object provides the option to manipulate the outside range in a mask
-    image. The outside region for the mask can be set to a specific value.
-    Also, the region outside the clipped range can be set to a constant
-    value.
-    Note: The boundaries defined by the threshold values are considered as
-    inside region and will not be affected.
+        image. The outside region for the mask can be set to a specific
+        value. Also, the region outside the clipped range can be set to a
+        constant value.
+        Note: The boundaries defined by the threshold values are considered as
+        inside region and will not be affected.
 
     Args:
         lower_bound: Any voxel values less than this parameter will be set to
@@ -2053,16 +2063,16 @@ class IsolateRange(Transformation):
         image_outside_value: This value is used to set the value of outside
             voxels in the image. Any voxel with a value less than
             `lower_bound` or greater than `upper_bound` is considered
-             to be in the outside region. The default is `0`.
+            to be in the outside region. The default is `0`.
         mask_outside_value: This value is used to set the value of outside
             voxels in the mask. Any voxel with a value less than
             `lower_bound` or greater than `upper_bound` is considered
-             to be in the outside region. If `recalculate_mask` is False,
-             this is ignored. The default is `0`.
+            to be in the outside region. If `recalculate_mask` is False,
+            this is ignored. The default is `0`.
         recalculate_mask: If True and the mask is not None, the voxel values
             mask representing the outside region are replaced with
             `image_outside_value`. If False, the mask is not affected
-             by this transformation.
+            by this transformation.
         p: The transformation is applied with a probability of `p`.
             The default value is `1.0`.
 
@@ -2122,7 +2132,7 @@ class IsolateRange(Transformation):
                 msk_image = sitk.GetImageFromArray(msk)
                 msk_image.CopyInformation(mask)
                 mask = msk_image
-            image, _ = apply_transform(self.filter, image, None)
+            image, _ = _apply_transform(self.filter, image, None)
         return image, mask
 
     def __repr__(self):
@@ -2204,7 +2214,7 @@ class IntensityRangeTransfer(Transformation):
             self.filter.SetOutputMaximum(self.window[1])
             if self.cast is not None:
                 image = sitk.Cast(image, self.cast)
-            image, _ = apply_transform(self.filter, image)
+            image, _ = _apply_transform(self.filter, image)
         return image, mask
 
     def __repr__(self):
@@ -2216,12 +2226,11 @@ class AdaptiveHistogramEqualization(Transformation):
     """Histogram equalization modifies the contrast in an image.
 
     This transformation uses the AdaptiveHistogramEqualizationImageFilter
-    from SimpleITK.
-        AdaptiveHistogramEqualization can produce an adaptively equalized
-        histogram or a version of unsharp mask (local mean subtraction).
-        Instead of applying a strict histogram equalization in a window about a
-        pixel, this filter prescribes a mapping function (power law)
-        controlled by the parameters alpha and beta.
+        from SimpleITK. AdaptiveHistogramEqualization can produce an
+        adaptively equalized histogram or a version of unsharp mask
+        (local mean subtraction). Instead of applying a strict histogram
+        equalization in a window about a pixel, this filter prescribes a mapping
+        function (power law) controlled by the parameters alpha and beta.
 
     Args:
         alpha: This parameter controls the behaviour of the transformation. A
@@ -2267,7 +2276,7 @@ class AdaptiveHistogramEqualization(Transformation):
                 parameter is None, this would also be None.
         """
         if random.random() <= self.p:
-            image, _ = apply_transform(self.filter, image)
+            image, _ = _apply_transform(self.filter, image)
         return image, mask
 
     def __repr__(self):
@@ -2377,7 +2386,7 @@ class BinaryFillHole(Transformation):
             raise ValueError("mask cannot be None.")
         check_dimensions(image, mask)
         if random.random() <= self.p:
-            image, mask = apply_transform(self.filter, image, mask)
+            image, mask = _apply_transform(self.filter, image, mask)
         return image, mask
 
     def __repr__(self):
@@ -2496,7 +2505,7 @@ class Isotropic(Transformation):
             inferred from the image and mask.
         output_origin: The origin of image and mask (both assumed to be
             the same). The default is `None`, meaning that the origin is
-           is inferred from the image and mask.
+            is inferred from the image and mask.
         use_nearest_neighbor_extrapolator: Use the nearest neighbour for
             extrapolations. The default is `True`.
         dimension: The dimension of the image and mask. The default is `3`.
@@ -3432,3 +3441,134 @@ class Cast(Transformation):
         return msg.format(self.__class__.__name__,
                           self.out_image_dtype,
                           self.out_mask_dtype)
+
+
+class UniformNoise(Transformation):
+    """Add a scattered noise to an image.
+
+    Args:
+        low: The lower-bound for the noise values. The noise values will be
+            greater than or equal to this value
+        high: The upper-bound for the noise values. The noise values will be
+            less than this value.
+        dtype: The data type used for generating the uniform random noise.
+            Allowed data types are: `sitk.sitkInt8`, `sitk.sitkUInt8`,
+            `sitk.sitkInt16`, sitk.sitkUInt16`, `sitk.sitkInt32`,
+            `sitk.sitkUInt32`, `sitk.sitkInt64`, `sitk.sitkUInt64`,
+            `sitk.sitkFloat32`, `sitk.sitkFloat64`.
+        seed: The seed used for random number generator. If None, a fresh value
+            is used. The default is None.
+
+    """
+
+    def __init__(self, low, high, ratio=0.01, dtype=sitk.sitkInt16,
+                 seed=None, p=1.0):
+        assert dtype in {sitk.sitkInt8, sitk.sitkUInt8, sitk.sitkInt16,
+                         sitk.sitkUInt16, sitk.sitkInt32, sitk.sitkUInt32,
+                         sitk.sitkInt64, sitk.sitkUInt64, sitk.sitkFloat32,
+                         sitk.sitkFloat64}
+        assert low < high
+        self.low = low
+        self.high = high
+        self.ratio = ratio
+        self.dtype = dtype
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
+        self.p = p
+
+    def __call__(self, image, mask=None):
+        """Apply the transformations in a random order.
+
+        The transformations are applied to an image. This transformation
+            keeps the mask unchanged.
+
+        Args:
+            image: A SimpleITK Image.
+            mask: A SimpleITK Image representing the contours for the image.
+                The default value is None. If mask is not None, its size should
+                be equal to the size of the image.
+
+        Returns:
+            sitk.Image: The transformed image.
+            sitk.Image: The mask for the transformed image. If the mask
+                parameter is None, this would also be None.
+
+        """
+        if random.random() > self.p:
+            return image, mask
+        img_array = sitk.GetArrayFromImage(image)
+        size = img_array.shape
+        if self.dtype in {sitk.sitkInt8, sitk.sitkUInt8,
+                          sitk.sitkInt16, sitk.sitkUInt16,
+                          sitk.sitkInt32, sitk.sitkUInt32,
+                          sitk.sitkInt64, sitk.sitkUInt64}:
+            noise = self.rng.integers(low=self.low, high=self.high, size=size)
+        else:
+            noise = self.rng.ranom(size)
+            noise = self.low + noise * (self.high - self.low)
+        noisy_spots = self.rng.binomial(1, self.ratio, size)
+
+        img_array = np.where(noisy_spots == 1, noise, img_array)
+        img = sitk.GetImageFromArray(img_array)
+        img.CopyInformation(image)
+        img = sitk.Cast(img, self.dtype)
+        return img, mask
+
+    def __repr__(self):
+        msg = "{} (low={}, high={}, ratio={}, dtype={}, seed={})"
+        msg.format(self.__class__.__name__, self.low, self.high, self.ratio,
+                   self.dtype, self.seed)
+        return msg.format(msg)
+
+class Factory(object):
+    """Create a collection of transformations with different parameters.
+
+    Args:
+        transformation: A forger transformation.
+        parameters: A dictionary containing the parameter values for the
+            `transformation`. The keys of the dictionary should be the argument
+            names for the `transformation`. The possible values for each
+            argument should be in a list even if there is one option. The
+            argument with default value could be skipped. In that case,
+            the default value will be used for the `transformation`.
+        p: The transformation is applied with a probability of p.
+            The default value is `1.0`.
+    """
+    def __init__(self, transformation: Transformation, parameters: dict,
+                 p: float = 1.0):
+        assert p > 0
+        self.p = p
+        self.transform = transformation
+        self.parameters = parameters
+        arguments = list(self.parameters.keys())
+        values = [self.parameters[k] for k in arguments]
+        self.transformations = []
+        candidates = itertools.product(*values)
+        for candidate in candidates:
+            args = dict(zip(arguments, candidate))
+            tsfm = self.transform(**args)
+            self.transformations.append(tsfm)
+
+    def __call__(self, image, mask=None):
+        """Apply the transformation to an image and its mask (if provided).
+
+        Args:
+            image: A SimpleITK Image.
+            mask: A SimpleITK Image representing the contours for the image.
+                The default value is None. If mask is not None, its size should
+                be equal to the size of the image.
+
+        Returns:
+            sitk.Image: The transformed image.
+            sitk.Image: The mask for the transformed image. If the mask
+                parameter is None, this would also be None.
+        """
+        check_dimensions(image, mask)
+        if random.random() <= self.p:
+            tsfm = random.choice(self.transformations)
+            image, mask = tsfm(image, mask)
+        return image, mask
+
+    def __repr__(self):
+        return (f'{self.__class__.__name__} ({self.transform.__name__},'
+                f'{self.parameters}, {self.p})')
